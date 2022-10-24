@@ -10,37 +10,22 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
 
 class NewPasswordController extends Controller
 {
     /**
-     * Display the password reset view.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Inertia\Response
-     */
-    public function create(Request $request)
-    {
-        return Inertia::render('Auth/ResetPassword', [
-            'email' => $request->email,
-            'token' => $request->route('token'),
-        ]);
-    }
-
-    /**
      * Handle an incoming new password request.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request)
     {
         $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
+            'token' => ['required'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -59,15 +44,12 @@ class NewPasswordController extends Controller
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        if ($status == Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+        if ($status != Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => [trans($status)],
-        ]);
+        return response()->json(['status' => __($status)]);
     }
 }
