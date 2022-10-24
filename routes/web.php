@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-
+use Illuminate\Support\Facades\Auth;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -14,18 +12,38 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
+Route::redirect('/', '/login');
+/*Route::get('/', function () {
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    return ['Laravel' => app()->version()];
+});*/
 
 require __DIR__.'/auth.php';
+
+
+Route::get('/home', function () {
+    if (session('status')) {
+        return redirect()->route('admin.home')->with('status', session('status'));
+    }
+
+    return redirect()->route('admin.home');
+});
+
+Auth::routes(['register' => false]);
+// Admin
+
+Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth']], function () {
+    Route::get('/', 'HomeController@index')->name('home');
+    // Permissions
+    Route::delete('permissions/destroy', 'PermissionsController@massDestroy')->name('permissions.massDestroy');
+    Route::resource('permissions', 'PermissionsController');
+
+    // Roles
+    Route::delete('roles/destroy', 'RolesController@massDestroy')->name('roles.massDestroy');
+    Route::resource('roles', 'RolesController');
+
+    // Users
+    Route::delete('users/destroy', 'UsersController@massDestroy')->name('users.massDestroy');
+    Route::resource('users', 'UsersController');
+
+});
